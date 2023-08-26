@@ -222,7 +222,7 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 			return config, err
 		}
 	}
-	
+
 	return config, nil
 }
 
