@@ -4,7 +4,7 @@ Intel and ARM supported
 
 ## Install
 
-```go get github.com/adrium/goheif```
+```go get github.com/turt2live/goheif```
 
 - Code Sample
 ```

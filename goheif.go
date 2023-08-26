@@ -8,8 +8,8 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/adrium/goheif/heif"
-	"github.com/adrium/goheif/libde265"
+	"github.com/turt2live/goheif/heif"
+	"github.com/turt2live/goheif/libde265"
 )
 
 // SafeEncoding uses more memory but seems to make
