@@ -32,7 +32,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"strings"
 )
 
@@ -173,7 +172,7 @@ func (r *Reader) ReadBox() (Box, error) {
 		return nil, io.EOF
 	}
 	if r.lastBox != nil {
-		if _, err := io.Copy(ioutil.Discard, r.lastBox.Body()); err != nil {
+		if _, err := io.Copy(io.Discard, r.lastBox.Body()); err != nil {
 			return nil, err
 		}
 	}
@@ -317,7 +316,7 @@ func (br *bufReader) parseAppendBoxes(dst *[]Box) error {
 			br.err = err
 			return err
 		}
-		slurp, err := ioutil.ReadAll(inner.Body())
+		slurp, err := io.ReadAll(inner.Body())
 		if err != nil {
 			br.err = err
 			return err
@@ -910,7 +909,7 @@ func parseItemDataBox(gen *box, br *bufReader) (Box, error) {
 		return nil, err
 	}
 
-	data, err := ioutil.ReadAll(fb.Body())
+	data, err := io.ReadAll(fb.Body())
 	if err != nil {
 		return nil, err
 	}

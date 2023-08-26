@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"io"
-	"io/ioutil"
 
 	"github.com/turt2live/goheif/heif"
 	"github.com/turt2live/goheif/libde265"
@@ -63,7 +62,7 @@ func decodeHevcItem(dec *libde265.Decoder, hf *heif.File, item *heif.Item) (*ima
 	}
 
 	dec.Reset()
-	dec.Push(hdr)
+	_ = dec.Push(hdr)
 	tile, err := dec.DecodeImage(data)
 	if err != nil {
 		return nil, err
@@ -181,7 +180,7 @@ func Decode(r io.Reader) (image.Image, error) {
 	}
 
 	//crop to actual size when applicable
-	out.Rect = image.Rectangle{image.Pt(0, 0), image.Pt(width, height)}
+	out.Rect = image.Rectangle{Min: image.Pt(0, 0), Max: image.Pt(width, height)}
 	return out, nil
 }
 
@@ -218,7 +217,7 @@ func asReaderAt(r io.Reader) (io.ReaderAt, error) {
 		return ra, nil
 	}
 
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
