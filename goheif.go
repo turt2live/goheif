@@ -1,11 +1,11 @@
 package goheif
 
 import (
-	"bytes"
 	"fmt"
 	"image"
 	"image/color"
 	"io"
+	"os"
 
 	"github.com/turt2live/goheif/heif"
 	"github.com/turt2live/goheif/libde265"
@@ -154,7 +154,7 @@ func Decode(r io.Reader) (image.Image, error) {
 			if tileWidth == 0 {
 				tileWidth, tileHeight = rect.Dx(), rect.Dy()
 				width, height := tileWidth*grid.columns, tileHeight*grid.rows
-				out = image.NewYCbCr(image.Rectangle{image.Pt(0, 0), image.Pt(width, height)}, ycc.SubsampleRatio)
+				out = image.NewYCbCr(image.Rectangle{Min: image.Pt(0, 0), Max: image.Pt(width, height)}, ycc.SubsampleRatio)
 			}
 
 			if tileWidth != rect.Dx() || tileHeight != rect.Dy() {
@@ -181,6 +181,13 @@ func Decode(r io.Reader) (image.Image, error) {
 
 	//crop to actual size when applicable
 	out.Rect = image.Rectangle{Min: image.Pt(0, 0), Max: image.Pt(width, height)}
+
+	if tr, ok := ra.(*tempFileReaderAt); ok {
+		if err = tr.DeleteFile(); err != nil {
+			return out, err
+		}
+	}
+
 	return out, nil
 }
 
@@ -209,6 +216,13 @@ func DecodeConfig(r io.Reader) (image.Config, error) {
 		Width:      width,
 		Height:     height,
 	}
+
+	if tr, ok := ra.(*tempFileReaderAt); ok {
+		if err = tr.DeleteFile(); err != nil {
+			return config, err
+		}
+	}
+	
 	return config, nil
 }
 
@@ -217,12 +231,44 @@ func asReaderAt(r io.Reader) (io.ReaderAt, error) {
 		return ra, nil
 	}
 
-	b, err := io.ReadAll(r)
+	// Dev note: upstream uses a ReadAll and byte buffer approach. This hurts memory
+	// usage on large files, so dump to temporary file and hope for the best.
+
+	f, err := os.CreateTemp(os.TempDir(), "goheif")
 	if err != nil {
 		return nil, err
 	}
 
-	return bytes.NewReader(b), nil
+	_, err = io.Copy(f, r)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = f.Seek(io.SeekStart, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tempFileReaderAt{f: f}, nil
+}
+
+type tempFileReaderAt struct {
+	io.ReaderAt
+	f *os.File
+}
+
+func (r *tempFileReaderAt) ReadAt(p []byte, off int64) (int, error) {
+	return r.f.ReadAt(p, off)
+}
+
+func (r *tempFileReaderAt) DeleteFile() error {
+	if err := r.f.Close(); err != nil {
+		return err
+	}
+	if err := os.Remove(r.f.Name()); err != nil {
+		return err
+	}
+	return nil
 }
 
 func init() {
